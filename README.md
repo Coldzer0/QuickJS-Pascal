@@ -1,6 +1,6 @@
 # QuickJS-Pascal
 
-## QuickJS FreePascal Binding sync with the latest version   ["2019-08-10"](https://github.com/wine-mirror/wine)
+## QuickJS FreePascal Binding sync with the latest version   [QuickJS](https://bellard.org/quickjs) Headers.
 
 ### I added a small demo in how to use it ```(it's a very easy engine to use)```.
 
@@ -8,9 +8,12 @@
 
 <br><hr><br>
 
-  - **TODO**
-    - Add more demos.
-    - update the implementation with every new update. 
+* Change log
+  - Init FPC binding - QJS Version "2019-08-10"
+
+- **TODO**
+  - Add more demos
+  - update the implementation with every new update :V 
 
 <br>
 
