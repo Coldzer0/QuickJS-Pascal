@@ -47,11 +47,18 @@ unit quickjs;
 interface
 
 uses
-  Classes, SysUtils, unixtype, quickjs_const;
+  quickjs_const;
 
 type
-  JS_BOOL = Integer;
+  {$ifdef cpu64}
+    size_t  = qword;
+    psize_t = ^size_t;
+  {$else}
+    size_t  = cardinal;
+    psize_t = ^size_t;
+  {$endif}
 
+  JS_BOOL = Integer;
   JSRuntime = Pointer;
 
   PPJSContext = ^_PJSContext; // Pointer to Pointer.

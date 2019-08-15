@@ -10,7 +10,7 @@ unit QuickJSDemo;
 interface
 
 uses
-  sysutils, quickjs, quickjs_const, unixtype;
+  quickjs, quickjs_const;
 
 // if you want to make a native class you must follow the following \
 // tab, JClass, Class_id and Class_proto Must be a global variables.

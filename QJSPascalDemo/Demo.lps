@@ -3,22 +3,105 @@
   <ProjectSession>
     <Version Value="11"/>
     <BuildModes Active="Default"/>
-    <Units Count="1">
+    <Units Count="5">
       <Unit0>
         <Filename Value="Demo.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <CursorPos X="72" Y="11"/>
+        <TopLine Value="3"/>
+        <CursorPos Y="18"/>
         <FoldState Value=" T3L0D1V"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit0>
+      <Unit1>
+        <Filename Value="quickjsdemo.pas"/>
+        <UnitName Value="QuickJSDemo"/>
+        <EditorIndex Value="1"/>
+        <CursorPos X="3" Y="13"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="../quickjs.pas"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="44"/>
+        <CursorPos Y="51"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="/usr/local/share/fpcsrc/rtl/darwin/ptypes.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="50"/>
+        <CursorPos X="5" Y="62"/>
+        <UsageCount Value="10"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="/usr/local/share/fpcsrc/rtl/unix/ctypes.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="43"/>
+        <CursorPos Y="52"/>
+        <UsageCount Value="10"/>
+      </Unit4>
     </Units>
-    <JumpHistory Count="1">
+    <JumpHistory Count="14" HistoryIndex="13">
       <Position1>
         <Filename Value="Demo.lpr"/>
         <Caret Line="146" TopLine="123"/>
       </Position1>
+      <Position2>
+        <Filename Value="Demo.lpr"/>
+        <Caret Line="104" Column="15" TopLine="95"/>
+      </Position2>
+      <Position3>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="24" Column="25" TopLine="10"/>
+      </Position3>
+      <Position4>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="101" Column="51" TopLine="90"/>
+      </Position4>
+      <Position5>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="13" Column="35"/>
+      </Position5>
+      <Position6>
+        <Filename Value="../quickjs.pas"/>
+        <Caret Line="50" Column="11" TopLine="50"/>
+      </Position6>
+      <Position7>
+        <Filename Value="../quickjs.pas"/>
+        <Caret Line="119" Column="24" TopLine="107"/>
+      </Position7>
+      <Position8>
+        <Filename Value="../quickjs.pas"/>
+        <Caret Line="119" Column="24" TopLine="107"/>
+      </Position8>
+      <Position9>
+        <Filename Value="../quickjs.pas"/>
+        <Caret Line="50" Column="3" TopLine="41"/>
+      </Position9>
+      <Position10>
+        <Filename Value="../quickjs.pas"/>
+        <Caret Line="55" Column="10" TopLine="41"/>
+      </Position10>
+      <Position11>
+        <Filename Value="../quickjs.pas"/>
+        <Caret Line="389" Column="76" TopLine="377"/>
+      </Position11>
+      <Position12>
+        <Filename Value="../quickjs.pas"/>
+        <Caret Line="57" Column="13" TopLine="42"/>
+      </Position12>
+      <Position13>
+        <Filename Value="../quickjs.pas"/>
+        <Caret Line="308" Column="25" TopLine="288"/>
+      </Position13>
+      <Position14>
+        <Filename Value="Demo.lpr"/>
+        <Caret Line="104" Column="15" TopLine="95"/>
+      </Position14>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>

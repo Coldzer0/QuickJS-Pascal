@@ -14,9 +14,9 @@ program Demo;
 {$ENDIF}
 uses
   {$IFDEF unix}cthreads,{$ENDIF}
-  cmem, quickjs, quickjs_const, QuickJSDemo,
-  classes, sysutils, unixtype,
-  RawExecution;
+  cmem,
+  quickjs, quickjs_const,
+  QuickJSDemo,RawExecution;
 
 
 function eval_buf(ctx : JSContext; Buf : PChar; buf_len : Integer; filename : PChar; eval_flags : Integer): Integer;
