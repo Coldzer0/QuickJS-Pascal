@@ -58,7 +58,7 @@ type
     psize_t = ^size_t;
   {$endif}
 
-  JS_BOOL = Integer;
+  JS_BOOL = Boolean;
   JSRuntime = Pointer;
 
   PPJSContext = ^_PJSContext; // Pointer to Pointer.
@@ -493,6 +493,7 @@ const
   function JS_Invoke(ctx:JSContext; this_val:JSValueConst; atom:JSAtom; argc:Integer; argv:PJSValueConst):JSValue;cdecl; external;
   function JS_CallConstructor(ctx:JSContext; func_obj:JSValueConst; argc:Integer; argv:PJSValueConst):JSValue;cdecl; external;
   function JS_CallConstructor2(ctx:JSContext; func_obj:JSValueConst; new_target:JSValueConst; argc:Integer; argv:PJSValueConst):JSValue;cdecl; external;
+  function JS_DetectModule(const input:PChar; input_len : size_t):JS_BOOL;cdecl; external;
   function JS_Eval(ctx:JSContext; input:Pchar; input_len:size_t; filename:Pchar; eval_flags:Integer):JSValue;cdecl; external;
   function JS_EvalBinary(ctx:JSContext; buf:Pointer; buf_len:size_t; flags:Integer):JSValue;cdecl; external;
   function JS_GetGlobalObject(ctx:JSContext):JSValue;cdecl; external;
@@ -870,7 +871,7 @@ end;
 
 function JS_NewBool({%H-}ctx : JSContext; val : JS_BOOL): JSValue; inline;
 begin
-  Result := JS_MKVAL(JS_TAG_BOOL, val);
+  Result := JS_MKVAL(JS_TAG_BOOL, Integer(val));
 end;
 
 function JS_NewInt32( {%H-}ctx : JSContext; val : Int32): JSValue; inline;
@@ -963,7 +964,7 @@ var
 begin
   if JS_VALUE_HAS_REF_COUNT(v) then
   begin
-    p := JS_VALUE_GET_PTR(v);
+    p := PJSRefCountHeader(JS_VALUE_GET_PTR(v));
     Dec(p^.ref_count);
     if (p^.ref_count <= 0) then
       __JS_FreeValue(ctx, v);
@@ -976,7 +977,7 @@ var
 begin
   if JS_VALUE_HAS_REF_COUNT(v) then
   begin
-    p := JS_VALUE_GET_PTR(v);
+    p := PJSRefCountHeader(JS_VALUE_GET_PTR(v));
     Dec(p^.ref_count);
     if (p^.ref_count <= 0) then
       __JS_FreeValueRT(rt, v);
@@ -989,7 +990,7 @@ var
 begin
   if JS_VALUE_HAS_REF_COUNT(v) then
   begin
-    p := JS_VALUE_GET_PTR(v);
+    p := PJSRefCountHeader(JS_VALUE_GET_PTR(v));
     inc(p^.ref_count);
   end;
   Result := JSValue(v);
@@ -1001,7 +1002,7 @@ var
 begin
   if JS_VALUE_HAS_REF_COUNT(v) then
   begin
-    p := JS_VALUE_GET_PTR(v);
+    p := PJSRefCountHeader(JS_VALUE_GET_PTR(v));
     inc(p^.ref_count);
   end;
   Result := JSValue(v);
@@ -1014,17 +1015,17 @@ end;
 
 function JS_ToCStringLen(ctx : JSContext; plen : psize_t; val : JSValueConst): PChar; inline;
 begin
-  Result := JS_ToCStringLen2(ctx, plen, val, 0);
+  Result := JS_ToCStringLen2(ctx, plen, val, False);
 end;
 
 function JS_ToCString(ctx : JSContext; val : JSValueConst): PChar; inline;
 begin
-  Result := JS_ToCStringLen2(ctx, nil, val, 0);
+  Result := JS_ToCStringLen2(ctx, nil, val, False);
 end;
 
 function JS_GetProperty(ctx : JSContext; this_obj : JSValueConst; prop : JSAtom): JSValue; inline;
 begin
-  Result := JS_GetPropertyInternal(ctx, this_obj, prop, this_obj, 0);
+  Result := JS_GetPropertyInternal(ctx, this_obj, prop, this_obj, False);
 end;
 
 function JS_SetProperty(ctx : JSContext; this_obj : JSValueConst; prop : JSAtom; val : JSValue): Integer; inline;

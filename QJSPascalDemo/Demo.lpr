@@ -24,7 +24,7 @@ var
   val : JSValue;
 begin
   val := JS_Eval(ctx, buf, buf_len, filename, eval_flags);
-  if Boolean(JS_IsException(val)) then
+  if JS_IsException(val) then
   begin
     js_std_dump_error(ctx);
     Result := -1;
@@ -76,7 +76,6 @@ var
   m   : JSModuleDef;
   global : JSValue;
   filename : PChar;
-  //tab : array [0..1] of JSCFunctionListEntry;
 const
   std_hepler : PChar =
     'import * as std from ''std'';'#10+
@@ -99,22 +98,23 @@ begin
       js_init_module_std(ctx, 'std');
       js_init_module_os(ctx, 'os');
 
-      // Register with module
-      m := JS_NewCModule(ctx, 'Cmu', @Emu_init);
-      Emu_mod_export(ctx,m);
+      {
+        Functions init order is important \
+        cuz i init the class and it's obj's and constructor in \
+        RegisterNativeClass then i just point the Module constructor to the same one.
+      }
 
       // Register with global object directly .
       RegisterNativeClass(ctx);
+
+      // Register with module
+      m := JS_NewCModule(ctx, 'Cmu', @Emu_init);
+      JS_AddModuleExport(ctx,m,'ApiHook');
 
       eval_buf(ctx, std_hepler, strlen(std_hepler), '<global_helper>', JS_EVAL_TYPE_MODULE);
 
 
       global := JS_GetGlobalObject(ctx);
-
-      //Array of functions at a time :D .
-      //tab[0] := JS_CFUNC_DEF('logme', 1, JSCFunctionType(@logme));
-      //tab[1] := JS_CFUNC_DEF('printme', 1, JSCFunctionType(@logme));
-      //JS_SetPropertyFunctionList(ctx,global,@tab,Length(tab));
 
       // Define a function in the global context.
       JS_SetPropertyStr(ctx,global,'log',JS_NewCFunction(ctx, @logme, 'log', 1));

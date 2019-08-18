@@ -1,14 +1,19 @@
 // custom log function.
-log('')
+log('\n====================================================\n')
 
 const ExitProcess = new Cmu.ApiHook(); // Create From Our Module
 
 ExitProcess.OnCallBack = function (Emu, API,ret) {
 
+	ExitProcess.args[0] = 1007;
+
 	console.log("Hello From ExitProcess",ExitProcess.version);
+
 	return true;
 };
-ExitProcess.install('kernel32.dll', 'FatalExit');
+ExitProcess.install('kernel32.dll', 'ExitProcess');
+
+log('args[0] : ',ExitProcess.args[0])
 
 
 log('\n====================================================\n')

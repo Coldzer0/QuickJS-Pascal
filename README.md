@@ -9,6 +9,7 @@
 <br><hr><br>
 
 * Change log
+  - Sync with QJS Version "2019-08-18"
   - Init FPC binding - QJS Version "2019-08-10"
 
 - **TODO**
