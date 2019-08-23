@@ -5,7 +5,7 @@ unit RawExecution;
 interface
 
 uses
-  Classes, SysUtils, quickjs, quickjs_const;
+  Classes, SysUtils, quickjs;
 
 const
   fib : array [0..130] of byte =(

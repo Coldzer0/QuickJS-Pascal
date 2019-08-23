@@ -3,10 +3,10 @@
 }
 
 unit QuickJSDemo;
-
-{$mode delphi}{$H+}{$M+}
-{$PackRecords C}
-
+{$IFDEF FPC}
+  {$mode delphi}{$H+}{$M+}
+  {$PackRecords C}
+{$ENDIF}
 interface
 
 uses
@@ -29,16 +29,15 @@ implementation
 
 function install(ctx : JSContext; {%H-}this_val : JSValueConst; argc : Integer; argv : PJSValueConstArr): JSValue; cdecl;
 var
-  Module,API : PChar;
+  Module,API : PAnsiChar;
   OnCallBack,res : JSValue;
 begin
   Result := JS_UNDEFINED;
   if argc >= 2 then
   begin
+    Module := JS_ToCString(ctx, argv[0]);
+    API := JS_ToCString(ctx, argv[1]);
     try
-      Module := JS_ToCString(ctx, argv[0]);
-      API := JS_ToCString(ctx, argv[1]);
-
       Writeln('API : ',Module, '.', API);
 
       OnCallBack := JS_GetPropertyStr(ctx,this_val,'OnCallBack');
@@ -68,8 +67,8 @@ procedure Emu_mod_init(ctx : JSContext; m : JSModuleDef); cdecl;
 var
   obj : JSValue;
 begin
-  obj := JS_NewCFunction2(ctx, @CConstructor, 'ApiHook', 1, JS_CFUNC_constructor, 0);
-  JS_SetModuleExport(ctx, m, 'ApiHook', obj);
+  obj := JS_NewCFunction2(ctx, @CConstructor, PAnsiChar('ApiHook'), 1, JS_CFUNC_constructor, 0);
+  JS_SetModuleExport(ctx, m, PAnsiChar('ApiHook'), obj);
 end;
 
 function Emu_init(ctx : JSContext; m : JSModuleDef): Integer;cdecl;
@@ -90,13 +89,14 @@ begin
 
   // Properties list.
   tab[0] := JS_CFUNC_DEF('install', 1, JSCFunctionType(@install));
-  tab[1] := JS_PROP_INT32_DEF('version', 1337, JS_PROP_CONFIGURABLE);// add "or JS_PROP_WRITABLE" to make it writable.
+  tab[1] := JS_PROP_INT32_DEF('version', 1337, JS_PROP_CONFIGURABLE);
 
   // New Object act as Prototype for the Class.
   API_Class_Proto := JS_NewObject(ctx);
 
   // Set list of Properties to the prototype Object.
   JS_SetPropertyFunctionList(ctx,API_Class_Proto,@tab,Length(tab));
+
 
   // Set the Prototype to the Class.
   JS_SetClassProto(ctx, API_Class_id, API_Class_Proto);

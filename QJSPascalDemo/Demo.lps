@@ -3,12 +3,13 @@
   <ProjectSession>
     <Version Value="11"/>
     <BuildModes Active="Default"/>
-    <Units Count="6">
+    <Units Count="7">
       <Unit0>
         <Filename Value="Demo.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="5" Y="50"/>
-        <UsageCount Value="53"/>
+        <TopLine Value="11"/>
+        <CursorPos X="10" Y="18"/>
+        <UsageCount Value="54"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit0>
@@ -17,8 +18,8 @@
         <UnitName Value="QuickJSDemo"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="25"/>
-        <CursorPos X="3" Y="39"/>
+        <TopLine Value="52"/>
+        <CursorPos Y="63"/>
         <UsageCount Value="27"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -26,8 +27,8 @@
       <Unit2>
         <Filename Value="../quickjs.pas"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="931"/>
-        <CursorPos X="25" Y="993"/>
+        <TopLine Value="784"/>
+        <CursorPos X="10" Y="796"/>
         <UsageCount Value="27"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -48,134 +49,141 @@
       </Unit4>
       <Unit5>
         <Filename Value="../quickjs_const.pas"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="39"/>
         <CursorPos X="16" Y="47"/>
         <UsageCount Value="15"/>
-        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit5>
+      <Unit6>
+        <Filename Value="rawexecution.pas"/>
+        <UnitName Value="RawExecution"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="63" Y="7"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit6>
     </Units>
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="../quickjs.pas"/>
-        <Caret Line="226" Column="29" TopLine="206"/>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="69" Column="6" TopLine="61"/>
       </Position1>
       <Position2>
-        <Filename Value="../quickjs.pas"/>
-        <Caret Line="355" Column="67" TopLine="335"/>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="90" Column="51" TopLine="78"/>
       </Position2>
       <Position3>
-        <Filename Value="../quickjs.pas"/>
-        <Caret Line="356" Column="48" TopLine="336"/>
+        <Filename Value="Demo.lpr"/>
+        <Caret Line="105" Column="85" TopLine="84"/>
       </Position3>
       <Position4>
-        <Filename Value="../quickjs.pas"/>
-        <Caret Line="423" Column="23" TopLine="417"/>
+        <Filename Value="Demo.lpr"/>
+        <Caret Line="27" Column="25" TopLine="15"/>
       </Position4>
       <Position5>
-        <Filename Value="../quickjs.pas"/>
-        <Caret Line="119" Column="65" TopLine="107"/>
+        <Filename Value="Demo.lpr"/>
+        <Caret Line="112" Column="43" TopLine="102"/>
       </Position5>
       <Position6>
-        <Filename Value="../quickjs.pas"/>
-        <Caret Line="240" Column="16" TopLine="228"/>
+        <Filename Value="Demo.lpr"/>
+        <Caret Line="111" Column="49" TopLine="102"/>
       </Position6>
       <Position7>
-        <Filename Value="../quickjs.pas"/>
-        <Caret Line="61" Column="20" TopLine="48"/>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="39" Column="3" TopLine="25"/>
       </Position7>
       <Position8>
-        <Filename Value="../quickjs.pas"/>
-        <Caret Line="873" Column="42" TopLine="861"/>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="103" Column="22" TopLine="94"/>
       </Position8>
       <Position9>
-        <Filename Value="../quickjs.pas"/>
-        <Caret Line="1022" Column="50" TopLine="1005"/>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="13" Column="10"/>
       </Position9>
       <Position10>
         <Filename Value="../quickjs.pas"/>
-        <Caret Line="1027" Column="72" TopLine="1015"/>
+        <Caret Line="476" TopLine="353"/>
       </Position10>
       <Position11>
         <Filename Value="quickjsdemo.pas"/>
-        <Caret Line="36" Column="25" TopLine="34"/>
+        <Caret Line="103" Column="66" TopLine="90"/>
       </Position11>
       <Position12>
         <Filename Value="quickjsdemo.pas"/>
-        <Caret Line="60" Column="36" TopLine="38"/>
+        <Caret Line="13" Column="25"/>
       </Position12>
       <Position13>
-        <Filename Value="quickjsdemo.pas"/>
-        <Caret Line="51" Column="61" TopLine="34"/>
+        <Filename Value="Demo.lpr"/>
+        <Caret Line="18" Column="10" TopLine="11"/>
       </Position13>
       <Position14>
-        <Filename Value="../quickjs_const.pas"/>
-        <Caret Line="62" Column="40" TopLine="53"/>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="13" Column="10" TopLine="6"/>
       </Position14>
       <Position15>
         <Filename Value="quickjsdemo.pas"/>
-        <Caret Line="72" Column="7" TopLine="66"/>
+        <Caret Line="103" Column="95" TopLine="103"/>
       </Position15>
       <Position16>
-        <Filename Value="../quickjs.pas"/>
-        <Caret Line="629" Column="21" TopLine="618"/>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="100" Column="93" TopLine="95"/>
       </Position16>
       <Position17>
-        <Filename Value="../quickjs.pas"/>
-        <Caret Line="630" Column="21" TopLine="618"/>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="98" Column="88" TopLine="86"/>
       </Position17>
       <Position18>
-        <Filename Value="quickjsdemo.pas"/>
-        <Caret Line="111" Column="12" TopLine="103"/>
+        <Filename Value="../quickjs.pas"/>
+        <Caret Line="797" Column="23" TopLine="786"/>
       </Position18>
       <Position19>
         <Filename Value="quickjsdemo.pas"/>
-        <Caret Line="71" Column="54" TopLine="64"/>
+        <Caret Line="98" Column="88" TopLine="86"/>
       </Position19>
       <Position20>
         <Filename Value="quickjsdemo.pas"/>
-        <Caret Line="18" Column="29" TopLine="6"/>
+        <Caret Line="93" Column="34" TopLine="87"/>
       </Position20>
       <Position21>
         <Filename Value="quickjsdemo.pas"/>
-        <Caret Line="19" Column="16" TopLine="6"/>
+        <Caret Line="100" Column="69" TopLine="88"/>
       </Position21>
       <Position22>
         <Filename Value="quickjsdemo.pas"/>
-        <Caret Line="117" Column="33" TopLine="105"/>
+        <Caret Line="94" Column="3" TopLine="86"/>
       </Position22>
       <Position23>
         <Filename Value="quickjsdemo.pas"/>
-        <Caret Line="19" Column="20" TopLine="7"/>
+        <Caret Line="21" Column="20" TopLine="32"/>
       </Position23>
       <Position24>
-        <Filename Value="quickjsdemo.pas"/>
-        <Caret Line="18" Column="15" TopLine="10"/>
+        <Filename Value="../quickjs.pas"/>
+        <Caret Line="797" Column="23" TopLine="786"/>
       </Position24>
       <Position25>
         <Filename Value="quickjsdemo.pas"/>
-        <Caret Line="69" Column="6" TopLine="61"/>
+        <Caret Line="93" Column="39" TopLine="85"/>
       </Position25>
       <Position26>
         <Filename Value="quickjsdemo.pas"/>
-        <Caret Line="90" Column="51" TopLine="78"/>
+        <Caret Line="21" Column="3" TopLine="13"/>
       </Position26>
       <Position27>
-        <Filename Value="Demo.lpr"/>
-        <Caret Line="105" Column="85" TopLine="84"/>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="33" Column="28" TopLine="33"/>
       </Position27>
       <Position28>
-        <Filename Value="Demo.lpr"/>
-        <Caret Line="27" Column="25" TopLine="15"/>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="88" Column="30" TopLine="84"/>
       </Position28>
       <Position29>
-        <Filename Value="Demo.lpr"/>
-        <Caret Line="112" Column="43" TopLine="102"/>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="87" Column="89" TopLine="84"/>
       </Position29>
       <Position30>
-        <Filename Value="Demo.lpr"/>
-        <Caret Line="111" Column="49" TopLine="102"/>
+        <Filename Value="quickjsdemo.pas"/>
+        <Caret Line="21" Column="20" TopLine="14"/>
       </Position30>
     </JumpHistory>
     <RunParams>

@@ -15,7 +15,7 @@ program Demo;
 uses
   {$IFDEF unix}cthreads,{$ENDIF}
   cmem,
-  quickjs, quickjs_const,
+  quickjs,
   QuickJSDemo,RawExecution;
 
 
