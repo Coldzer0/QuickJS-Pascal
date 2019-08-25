@@ -1,5 +1,5 @@
 {
-  FreePascal binding for QuickJS Engine.
+  FreePascal / Delphi bindings for QuickJS Engine.
 
   Copyright(c) 2019 Coldzer0 <Coldzer0 [at] protonmail.ch>
 
@@ -22,7 +22,7 @@
   IN THE SOFTWARE.
 }
 
-unit quickjs;
+unit QuickJS;
 
 {$IfDef FPC}
   {$MODE Delphi}
@@ -192,6 +192,11 @@ const
 type
   {$IFNDEF FPC}
     // Delphi Compatible.
+    // Anything under XE4.
+    {$IF (CompilerVersion <= 25)}
+    type
+      PUint32 = ^Uint32; // PUint32 not defined in XE4 - Fix by @edwinyzh
+    {$IFEND}
     pUInt8  	      = PByte;
     pInt8   	      = PShortInt;
     pInt16  	      = PSmallint;
@@ -258,10 +263,6 @@ type
       tag : Int64;
   end;
   PJSValue = ^JSValue;
-
-  TJSValue = class
-    value: JSValue;
-  end;
 
   JSValueConst = JSValue;
   PJSValueConst = ^JSValueConst;
