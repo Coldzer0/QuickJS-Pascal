@@ -22,7 +22,7 @@
   IN THE SOFTWARE.
 }
 
-unit QuickJS;
+unit QuickJS; // sync with version - "2019-09-01".
 
 {$IfDef FPC}
   {$MODE Delphi}
@@ -131,10 +131,13 @@ const
 
   JS_EVAL_FLAG_STRICT       = (1 shl 3); { force 'strict' mode }
   JS_EVAL_FLAG_STRIP        = (1 shl 4); { force 'strip' mode }
+  (*
+    compile but do not run. The result is an object with a
+     JS_TAG_FUNCTION_BYTECODE or JS_TAG_MODULE tag. It can be executed
+     with JS_EvalFunction().
+  *)
   JS_EVAL_FLAG_COMPILE_ONLY = (1 shl 5); { internal use }
 
-
-  JS_EVAL_BINARY_LOAD_ONLY  = (1 shl 0); { only load the module }
 
   { Object Writer/Reader (currently only used to handle precompiled code)  }
   JS_WRITE_OBJ_BYTECODE     = (1 shl 0); { allow function/module }
@@ -644,7 +647,7 @@ type
   function JS_CallConstructor2(ctx:JSContext; func_obj:JSValueConst; new_target:JSValueConst; argc:Integer; argv:PJSValueConst):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_DetectModule(const input:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; input_len : size_t):JS_BOOL;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_Eval(ctx:JSContext; input:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; input_len:size_t; filename:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; eval_flags:Integer):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
-  function JS_EvalBinary(ctx:JSContext; buf:Pointer; buf_len:size_t; flags:Integer):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  function JS_EvalFunction(ctx:JSContext; fun_obj : JSValue):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_GetGlobalObject(ctx:JSContext):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_IsInstanceOf(ctx:JSContext; val:JSValueConst; obj:JSValueConst):Integer;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_DefineProperty(ctx:JSContext; this_obj:JSValueConst; prop:JSAtom; val:JSValueConst; getter:JSValueConst;
@@ -690,8 +693,11 @@ type
 
   function JS_WriteObject(ctx: JSContext; psize:psize_t; obj:JSValueConst; flags:Integer):pUInt8; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_ReadObject(ctx: JSContext; buf:pUInt8; buf_len:size_t; flags:Integer):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
-  function JS_EvalFunction(ctx: JSContext; fun_obj:JSValue; this_obj:JSValueConst):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
-
+  {
+    load the dependencies of the module 'obj'. Useful when JS_ReadObject()
+     returns a module.
+  }
+  function JS_ResolveModule(ctx: JSContext; obj : JSValueConst):Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
   { C function definition }
 
@@ -715,6 +721,9 @@ type
   function JS_SetModuleExport(ctx: JSContext; m: JSModuleDef; export_name:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; val:JSValue):Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_SetModuleExportList(ctx: JSContext; m: JSModuleDef; tab:PJSCFunctionListEntry; len:Integer):Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
+  { return the import.meta object of a module }
+  function JS_GetImportMeta(ctx: JSContext; m: JSModuleDef) : JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  function JS_GetModuleName(ctx: JSContext; m: JSModuleDef) : JSAtom; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
   { QuickJS libc }
   function  js_init_module_std(ctx: JSContext; module_name:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}):JSModuleDef;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
@@ -726,6 +735,7 @@ type
   function  js_load_file(ctx:JSContext; pbuf_len: psize_t; filename:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}): Pointer;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function  js_module_loader(ctx:JSContext; module_name:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; opaque:pointer):JSModuleDef;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure js_std_eval_binary(ctx : JSContext; buf : Pointer; buf_len : size_t; flags : Integer); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  function  js_module_set_import_meta(ctx : JSContext; func_val : JSValueConst; use_realpath, is_main : JS_BOOL) : Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
 { internal implementations}
 
