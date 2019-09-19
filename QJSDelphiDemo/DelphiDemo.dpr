@@ -78,9 +78,9 @@ const
     'import * as std from ''std'';'#10+
     'import * as os from ''os'';'#10+
     'import * as Cmu from ''Cmu'';'#10+ // Our Custom Module.
-    'std.global.std = std;'#10+
-    'std.global.os = os;'#10+
-    'std.global.Cmu = Cmu;'#10;
+    'globalThis.std = std;'#10+
+    'globalThis.os = os;'#10+
+    'globalThis.Cmu = Cmu;'#10;
 begin
   rt := JS_NewRuntime;
   if Assigned(rt) then
