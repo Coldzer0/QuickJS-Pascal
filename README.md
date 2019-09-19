@@ -7,6 +7,8 @@
 <br><hr><br>
 
 * Change log
+  - sync with QJS Version "2019-09-18"
+    - Dlls is update to QJS Version "2019-09-18"
   - Sync with QJS Version "2019-09-01" 
     - DLLs not updated yet (will upload static libs for mac, linux and dynamic ones for windows ).
   - Add Delphi Support

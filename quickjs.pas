@@ -22,7 +22,7 @@
   IN THE SOFTWARE.
 }
 
-unit QuickJS; // sync with version - "2019-09-01".
+unit QuickJS; // sync with version - "2019-09-18".
 
 {$IfDef FPC}
   {$MODE Delphi}
@@ -61,7 +61,8 @@ uses
 {===============================================================================}
 //                             QuickJS Constants
 {===============================================================================}
-
+const
+  QJS_VERSION = '2019-09-01';
 const
   { all tags with a reference count are negative }
   JS_TAG_FIRST                = -10; { first negative tag }
@@ -559,6 +560,7 @@ type
   function JS_AtomToValue(ctx: JSContext; atom:JSAtom):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_AtomToString(ctx: JSContext; atom:JSAtom):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_AtomToCString(ctx: JSContext; atom:JSAtom):{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  function JS_ValueToAtom(ctx: JSContext; val:JSValueConst) : JSAtom; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
   { object class support }
 
