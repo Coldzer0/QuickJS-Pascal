@@ -62,7 +62,7 @@ uses
 //                             QuickJS Constants
 {===============================================================================}
 const
-  QJS_VERSION = '2019-09-01';
+  QJS_VERSION = '2019-09-18';
 const
   { all tags with a reference count are negative }
   JS_TAG_FIRST                = -10; { first negative tag }
