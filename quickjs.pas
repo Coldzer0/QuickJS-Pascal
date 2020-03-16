@@ -1,7 +1,7 @@
 {
   FreePascal / Delphi bindings for QuickJS Engine.
 
-  Copyright(c) 2019 Coldzer0 <Coldzer0 [at] protonmail.ch>
+  Copyright(c) 2020 Coldzer0 <Coldzer0 [at] protonmail.ch>
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,7 @@
   IN THE SOFTWARE.
 }
 
-unit QuickJS; // sync with version - "2019-09-18".
+unit QuickJS; // sync with version - "2020-03-16".
 
 {$IfDef FPC}
   {$MODE Delphi}
@@ -62,17 +62,15 @@ uses
 //                             QuickJS Constants
 {===============================================================================}
 const
-  QJS_VERSION = '2019-09-18';
+  QJS_VERSION = '2020-03-16';
 const
   { all tags with a reference count are negative }
-  JS_TAG_FIRST                = -10; { first negative tag }
+  JS_TAG_FIRST                = -11; { first negative tag }
+  JS_TAG_BIG_DECIMAL          = -11;
   JS_TAG_BIG_INT              = -10;
   JS_TAG_BIG_FLOAT            = -9;
   JS_TAG_SYMBOL               = -8;
   JS_TAG_STRING               = -7;
-  JS_TAG_SHAPE                = -6; { used internally during GC }
-  JS_TAG_ASYNC_FUNCTION       = -5; { used internally during GC }
-  JS_TAG_VAR_REF              = -4; { used internally during GC }
   JS_TAG_MODULE               = -3; { used internally }
   JS_TAG_FUNCTION_BYTECODE    = -2; { used internally }
   JS_TAG_OBJECT               = -1;
@@ -139,6 +137,8 @@ const
   *)
   JS_EVAL_FLAG_COMPILE_ONLY = (1 shl 5); { internal use }
 
+  { don't include the stack frames before this eval in the Error() backtraces }
+  JS_EVAL_FLAG_BACKTRACE_BARRIER = (1 shl 6);
 
   { Object Writer/Reader (currently only used to handle precompiled code)  }
   JS_WRITE_OBJ_BYTECODE     = (1 shl 0); { allow function/module }
@@ -185,11 +185,9 @@ const
   { set theJSPropertyEnum.is_enumerable field }
   JS_GPN_SET_ENUM = (1 shl 5);
 
-  // TODO: write parser for atom header.
-  { ATOM }
-  JS_ATOM_prototype   = 58;
-  JS_ATOM_constructor = 59;
+  { C Call Flags }
 
+  JS_CALL_FLAG_CONSTRUCTOR = (1 shl 0);
 {===============================================================================}
 {===============================================================================}
 
@@ -235,6 +233,8 @@ type
   JSAtom    = UInt32;
 
   JSCFunctionEnum = Integer;
+
+  JSGCObjectHeader = Pointer;
 
 type
   PJSRefCountHeader = ^JSRefCountHeader;
@@ -331,7 +331,7 @@ type
 {===============================================================================}
 
   PJS_MarkFunc = ^JS_MarkFunc;
-  JS_MarkFunc = procedure (rt : JSRuntime; val : JSValueConst); cdecl;
+  JS_MarkFunc = procedure (rt : JSRuntime; gp : JSGCObjectHeader); cdecl;
 
   PJSClassFinalizer = ^JSClassFinalizer;
   JSClassFinalizer  = procedure (rt : JSRuntime; val : JSValue); cdecl;
@@ -343,7 +343,8 @@ type
   JSClassCall      = function (ctx : JSContext;
                               func_obj : JSValueConst;
                               this_val : JSValueConst;
-                              argc : Integer; argv : PJSValueConst) : JSValue; cdecl;
+                              argc : Integer; argv : PJSValueConst;
+                              flags : Integer) : JSValue; cdecl;
 
   PJSFreeArrayBufferDataFunc = ^JSFreeArrayBufferDataFunc;
   JSFreeArrayBufferDataFunc  = procedure(rt : JSRuntime; opaque, Ptr : Pointer); cdecl;
@@ -371,6 +372,13 @@ type
   PJSModuleInitFunc = ^JSModuleInitFunc;
   JSModuleInitFunc  = function (ctx : JSContext; m : JSModuleDef): Integer; cdecl;
 
+  { Promises RejectionTracker CallBack }
+
+  { is_handled = TRUE means that the rejection is handled  }
+  PJSHostPromiseRejectionTracker = ^JSHostPromiseRejectionTracker;
+  JSHostPromiseRejectionTracker = procedure(ctx : JSContext;
+                              promise, reason :JSValueConst;
+                              is_handled : JS_BOOL; opaque : Pointer); cdecl;
 {===============================================================================}
 
   { object class support }
@@ -422,6 +430,13 @@ type
     class_name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf};
     finalizer : PJSClassFinalizer;
     gc_mark : PJSClassGCMark;
+    {
+      if call != NULL, the object is a function. If (flags &
+             JS_CALL_FLAG_CONSTRUCTOR) != 0, the function is called as a
+             constructor. In this case, 'this_val' is new.target. A
+             constructor call only happens if the object constructor bit is
+             set (see JS_SetConstructorBit())
+    }
     call : PJSClassCall;
     { XXX: suppress this indirection ? It is here only to save memory
        because only a few classes need these methods }
@@ -498,15 +513,17 @@ type
   procedure JS_SetMemoryLimit(rt : JSRuntime; limit : size_t); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure JS_SetGCThreshold(rt : JSRuntime; gc_threshold : size_t); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
-  function JS_NewRuntime2(const mf : PJSMallocFunctions; opaque : Pointer) : JSRuntime; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  function  JS_NewRuntime2(const mf : PJSMallocFunctions; opaque : Pointer) : JSRuntime; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure JS_FreeRuntime(rt : JSRuntime); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  function  JS_GetRuntimeOpaque(rt : JSRuntime) : Pointer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  procedure JS_SetRuntimeOpaque(rt : JSRuntime; opaque : Pointer); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
 
   procedure JS_MarkValue(rt:JSRuntime; val:JSValueConst; mark_func:PJS_MarkFunc);cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure JS_RunGC(rt:JSRuntime);  cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
   function JS_IsLiveObject(rt:JSRuntime; obj:JSValueConst):JS_BOOL; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
-  function JS_IsInGCSweep(rt:JSRuntime):JS_BOOL; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  //{REMOVE}function JS_IsInGCSweep(rt:JSRuntime):JS_BOOL; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_NewContext(rt:JSRuntime):JSContext; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure JS_FreeContext(s: JSContext); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_GetContextOpaque(ctx: JSContext):pointer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
@@ -530,6 +547,15 @@ type
   procedure JS_AddIntrinsicMapSet(ctx: JSContext); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure JS_AddIntrinsicTypedArrays(ctx: JSContext); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure JS_AddIntrinsicPromise(ctx: JSContext); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+
+  procedure JS_AddIntrinsicBigInt(ctx: JSContext); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  procedure JS_AddIntrinsicBigFloat(ctx: JSContext); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  procedure JS_AddIntrinsicBigDecimal(ctx: JSContext); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  { enable operator overloading }
+  procedure JS_AddIntrinsicOperators(ctx: JSContext); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  { enable "use math" }
+  procedure JS_EnableBignumExt(ctx: JSContext; enable : JS_BOOL); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+
   function js_string_codePointRange(ctx: JSContext; this_val:JSValueConst; argc:Integer; argv:PJSValueConst):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
   function js_malloc_rt(rt: JSRuntime; size:size_t):pointer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
@@ -571,16 +597,13 @@ type
 
   { JS Numbers }
 
-  function JS_NewInt64 (ctx : JSContext; v : Int64): JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_NewBigInt64 (ctx : JSContext; v : Int64): JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_NewBigUint64 (ctx : JSContext; v : UInt64): JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
-  function JS_IsNumber (v : JSValueConst): JS_BOOL; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
 
   function JS_Throw(ctx: JSContext; obj:JSValue):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_GetException(ctx: JSContext):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_IsError(ctx: JSContext; val:JSValueConst):JS_BOOL; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
-  procedure JS_EnableIsErrorProperty(ctx: JSContext; enable:JS_BOOL); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure JS_ResetUncatchableError(ctx: JSContext); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_NewError(ctx: JSContext):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_ThrowSyntaxError(ctx: JSContext; fmt : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; args : Array of Const): JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
@@ -601,7 +624,10 @@ type
   function JS_ToInt64(ctx: JSContext; pres:PInt64; val:JSValueConst):Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_ToIndex(ctx: JSContext; plen:PUInt64; val:JSValueConst):Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_ToFloat64(ctx: JSContext; pres:PDouble; val:JSValueConst):Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  { return an exception if 'val' is a Number }
   function JS_ToBigInt64(ctx: JSContext; pres:PInt64; val:JSValueConst):Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  { same as JS_ToInt64() but allow BigInt }
+  function JS_ToInt64Ext(ctx: JSContext; pres:PInt64; val:JSValueConst):Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
   function JS_NewStringLen(ctx:JSContext; str1:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; len1: size_t):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_NewString(ctx:JSContext; str:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
@@ -619,6 +645,7 @@ type
   function JS_NewObject(ctx:JSContext):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_IsFunction(ctx:JSContext; val:JSValueConst):JS_BOOL; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_IsConstructor(ctx:JSContext; val:JSValueConst):JS_BOOL; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  function JS_SetConstructorBit(ctx:JSContext; func_obj : JSValueConst; val:JS_BOOL):JS_BOOL; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_NewArray(ctx:JSContext):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_IsArray(ctx:JSContext; val:JSValueConst):Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_GetPropertyInternal(ctx:JSContext; obj:JSValueConst; prop:JSAtom;
@@ -642,12 +669,15 @@ type
   function JS_GetOwnPropertyNames(ctx: JSContext; ptab:PPJSPropertyEnum; plen: pUInt32; obj:JSValueConst; flags : Integer): Integer;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_GetOwnProperty(ctx: JSContext; desc : PJSPropertyDescriptor; obj : JSValueConst; prop : JSAtom): Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
+  { 'buf' must be zero terminated i.e. buf[buf_len] := #0.  }
   function JS_ParseJSON(ctx:JSContext; buf:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; buf_len:size_t; filename:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  function JS_JSONStringify(ctx:JSContext; obj, replacer, space0 : JSValueConst):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_Call(ctx:JSContext; func_obj:JSValueConst; this_obj:JSValueConst; argc:Integer; argv:PJSValueConstArr):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_Invoke(ctx:JSContext; this_val:JSValueConst; atom:JSAtom; argc:Integer; argv:PJSValueConst):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_CallConstructor(ctx:JSContext; func_obj:JSValueConst; argc:Integer; argv:PJSValueConst):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_CallConstructor2(ctx:JSContext; func_obj:JSValueConst; new_target:JSValueConst; argc:Integer; argv:PJSValueConst):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_DetectModule(const input:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; input_len : size_t):JS_BOOL;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  { 'input' must be zero terminated i.e. buf[buf_len] := #0.  }
   function JS_Eval(ctx:JSContext; input:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; input_len:size_t; filename:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; eval_flags:Integer):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_EvalFunction(ctx:JSContext; fun_obj : JSValue):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_GetGlobalObject(ctx:JSContext):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
@@ -671,7 +701,14 @@ type
   procedure JS_DetachArrayBuffer(ctx:JSContext; obj:JSValueConst);cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_GetArrayBuffer(ctx:JSContext; psize:Psize_t; obj:JSValueConst):pUInt8;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
+  function JS_GetTypedArrayBuffer(ctx : JSContext; obj : JSValueConst;
+             pbyte_offset, pbyte_length, pbytes_per_element : psize_t):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+
   function JS_NewPromiseCapability(ctx:JSContext; resolving_funcs:PJSValue):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+
+  procedure JS_SetHostPromiseRejectionTracker(rt: JSRuntime;
+             cb : PJSHostPromiseRejectionTracker; opaque : Pointer); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+
   procedure JS_SetInterruptHandler(rt:JSRuntime; cb:PJSInterruptHandler; opaque:pointer);cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
   { if can_block is TRUE, Atomics.wait() can be used  }
@@ -702,6 +739,8 @@ type
   function JS_ResolveModule(ctx: JSContext; obj : JSValueConst):Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
   { C function definition }
+
+  procedure JS_SetConstructor(ctx : JSContext; func_obj, proto : JSValueConst);cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
   function JS_NewCFunction2(ctx: JSContext; func:PJSCFunction; name:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length:Integer; cproto:JSCFunctionEnum;
              magic:Integer):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
@@ -738,19 +777,22 @@ type
   function  js_module_loader(ctx:JSContext; module_name:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; opaque:pointer):JSModuleDef;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure js_std_eval_binary(ctx : JSContext; buf : Pointer; buf_len : size_t; flags : Integer); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function  js_module_set_import_meta(ctx : JSContext; func_val : JSValueConst; use_realpath, is_main : JS_BOOL) : Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  procedure js_std_promise_rejection_tracker(ctx : JSContext;
+             promise, reason : JSValueConst; is_handled : JS_BOOL; opaque : Pointer); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
 { internal implementations}
 
 function JS_VALUE_GET_TAG(v : JSValue): Int64;
 { same as JS_VALUE_GET_TAG, but return JS_TAG_FLOAT64 with NaN boxing }
 function JS_VALUE_GET_NORM_TAG(v : JSValue): Int64;
+function JS_VALUE_IS_NAN(v : JSValue) : JS_BOOL; inline;
 function JS_VALUE_GET_INT(v : JSValue): Integer;
 function JS_VALUE_GET_BOOL(v : JSValue): Boolean;
 function JS_VALUE_GET_FLOAT64(v : JSValue): Double;
 function JS_VALUE_GET_PTR(v : JSValue): Pointer;
 function JS_MKVAL(tag : Int64; val : Int32): JSValue;
 function JS_MKPTR(tag : Int64; ptr : Pointer): JSValue;
-function JS_TAG_IS_FLOAT64(tag : Int64): Boolean;
+function JS_TAG_IS_FLOAT64(tag : Int64): Boolean; inline;
 {$IfNDef JS_NAN_BOXING}
 function JS_NAN : JSValue;
 {$EndIf}
@@ -777,14 +819,16 @@ function JS_NewBool({%H-}ctx : JSContext; val : JS_BOOL): JSValue; inline;
 function JS_NewInt32( {%H-}ctx : JSContext; val : Int32): JSValue; inline;
 function JS_NewCatchOffset( {%H-}ctx : JSContext; val : Int32): JSValue; inline;
 function JS_NewFloat64(ctx : JSContext; d : Double): JSValue;
-function JS_IsInteger(v : JSValueConst): JS_BOOL; inline;
+function JS_IsBigInt(v : JSValueConst): JS_BOOL; inline;
 function JS_IsBigFloat(v : JSValueConst): JS_BOOL; inline;
+function JS_IsBigDecimal(v : JSValueConst): JS_BOOL; inline;
 function JS_IsBool(v : JSValueConst): JS_BOOL; inline;
 function JS_IsNull(v : JSValueConst): JS_BOOL; inline;
 function JS_IsUndefined(v : JSValueConst): JS_BOOL; inline;
 function JS_IsException(v : JSValueConst): JS_BOOL; inline;
 function JS_IsUninitialized(v : JSValueConst): JS_BOOL; inline;
 function JS_IsString(v : JSValueConst): JS_BOOL; inline;
+function JS_IsNumber(v : JSValueConst): JS_BOOL; inline;
 function JS_IsSymbol(v : JSValueConst): JS_BOOL; inline;
 function JS_IsObject(v : JSValueConst): JS_BOOL; inline;
 
@@ -896,7 +940,7 @@ begin
   Result := v;
 end;
 
-function JS_TAG_IS_FLOAT64(tag : Int64): Boolean;
+function JS_TAG_IS_FLOAT64(tag : Int64): Boolean; inline;
 begin
   Result := Boolean( UInt64((tag) - JS_TAG_FIRST) >= (JS_TAG_FLOAT64 - JS_TAG_FIRST) );
 end;
@@ -911,6 +955,11 @@ begin
       Result := JS_TAG_FLOAT64
   else
       Result := tag;
+end;
+
+function JS_VALUE_IS_NAN(v : JSValue) : JS_BOOL; inline;
+begin
+  Result := (JS_VALUE_GET_TAG(v) = (JS_NAN shr 32));
 end;
 
 {$else}
@@ -957,7 +1006,7 @@ begin
   Result.tag := tag;
 end;
 
-function JS_TAG_IS_FLOAT64(tag : Int64): Boolean;
+function JS_TAG_IS_FLOAT64(tag : Int64): Boolean; inline;
 begin
   Result := UInt64(tag) = JS_TAG_FLOAT64;
 end;
@@ -972,6 +1021,22 @@ function __JS_NewFloat64({%H-}ctx : JSContext; d : Double): JSValue;
 begin
   Result.u.float64 := d;
   Result.tag := JS_TAG_FLOAT64;
+end;
+
+function JS_VALUE_IS_NAN(v : JSValue) : JS_BOOL; inline;
+type
+  UnionRec = record
+    case Byte of
+      0 : (d : Double);
+      1 : (u64 : UInt64);
+  end;
+var
+  u : UnionRec;
+begin
+  if (v.tag <> JS_TAG_FLOAT64) then
+    Exit(False);
+  u.d := v.u.float64;
+  Result := (u.u64 and $7fffffffffffffff) > $7ff0000000000000;
 end;
 
 {$ENDIF}
@@ -1050,6 +1115,22 @@ begin
   Result := JS_MKVAL(JS_TAG_CATCH_OFFSET, val);
 end;
 
+function JS_NewInt64(ctx : JSContext; val : Int64): JSValue;
+begin
+  if val = Int32(val) then
+    Result := JS_NewInt32(ctx, val)
+  else
+    Result := __JS_NewFloat64(ctx, val);
+end;
+
+function JS_NewUint32(ctx : JSContext; val : UInt32): JSValue;
+begin
+  if val <= $7fffffff then
+    Result := JS_NewInt32(ctx, val)
+  else
+    Result := __JS_NewFloat64(ctx, val);
+end;
+
 function JS_NewFloat64(ctx : JSContext; d : Double): JSValue;
 type
   rec = record
@@ -1071,12 +1152,9 @@ begin
     Result := __JS_NewFloat64(ctx, d);
 end;
 
-function JS_IsInteger(v : JSValueConst): Boolean; inline;
-var
-  tag : Integer;
+function JS_IsBigInt(v : JSValueConst): Boolean; inline;
 begin
-  tag := JS_VALUE_GET_TAG(v);
-  Result := Boolean((tag = JS_TAG_INT) or (tag = JS_TAG_BIG_INT));
+ Result := Boolean(JS_VALUE_GET_TAG(v) = JS_TAG_BIG_INT);
 end;
 
 function JS_IsBigFloat(v : JSValueConst): Boolean; inline;
@@ -1084,7 +1162,12 @@ begin
   Result := Boolean(JS_VALUE_GET_TAG(v) = JS_TAG_BIG_FLOAT);
 end;
 
-function JS_IsBool(v : JSValueConst): Boolean; inline;
+function JS_IsBigDecimal(v : JSValueConst): JS_BOOL; inline;
+begin
+  Result := Boolean(JS_VALUE_GET_TAG(v) = JS_TAG_BIG_DECIMAL);
+end;
+
+function JS_IsBool(v : JSValueConst): JS_BOOL; inline;
 begin
   Result := Boolean(JS_VALUE_GET_TAG(v) = JS_TAG_BOOL);
 end;
@@ -1112,6 +1195,14 @@ end;
 function JS_IsString(v : JSValueConst): Boolean; inline;
 begin
   Result := Boolean(JS_VALUE_GET_TAG(v) = JS_TAG_STRING);
+end;
+
+function JS_IsNumber(v: JSValueConst): JS_BOOL; inline;
+var
+  tag : Integer;
+begin
+  tag := JS_VALUE_GET_TAG(v);
+  Result := (tag = JS_TAG_INT) or JS_TAG_IS_FLOAT64(tag);
 end;
 
 function JS_IsSymbol(v : JSValueConst): Boolean; inline;

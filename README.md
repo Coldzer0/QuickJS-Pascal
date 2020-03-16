@@ -7,6 +7,10 @@
 <br><hr><br>
 
 * Change log
+  - sync with QJS Version "2020-03-16"
+    - Contains all function and patches from
+      - Version "2019-10-27", "2019-12-21", "2020-01-05", "2020-01-19"
+    - Dlls not updated yet ( Compile your own for now till I do ^_^ )
   - sync with QJS Version "2019-09-18"
     - Dlls is update to QJS Version "2019-09-18"
   - Sync with QJS Version "2019-09-01" 

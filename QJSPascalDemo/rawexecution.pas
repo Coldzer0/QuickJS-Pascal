@@ -67,7 +67,7 @@ begin
     ctx := JS_NewContextRaw(rt);
     JS_AddIntrinsicBaseObjects(ctx);
     js_std_add_helpers(ctx,argc,argv);
-    js_std_eval_binary(ctx,@fib,Length(fib),JS_EVAL_BINARY_LOAD_ONLY);
+    js_std_eval_binary(ctx,@fib,Length(fib),0);
     js_std_eval_binary(ctx,@hello,Length(hello),0);
     js_std_loop(ctx);
     JS_FreeContext(ctx);
