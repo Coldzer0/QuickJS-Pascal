@@ -32,7 +32,6 @@ unit QuickJS; // sync with version - "2020-03-16".
 {$IfDef FPC}
   {$IfNDef windows}
     {$LinkLib 'libquickjs.a'}
-    //{$LinkLib 'libquickjs.lto.a'} { Faster Code - Link Time Optimization - Slow Compiling }
   {$EndIf}
 {$EndIf}
 

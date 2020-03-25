@@ -40,7 +40,6 @@
 *.tds
 *.dcu
 *.lib
-*.a
 *.o
 *.ocx
 
@@ -69,4 +68,6 @@ backup/
 lib/
 
 Demo
+.DS_Store
+.vscode
 *.lps

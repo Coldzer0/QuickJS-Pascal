@@ -7,6 +7,7 @@
 <br><hr><br>
 
 * Change log
+  - Upload Static libs for Mac, IOS, Linux and dynamic ones for Windows
   - sync with QJS Version "2020-03-16"
     - Contains all function and patches from
       - Version "2019-10-27", "2019-12-21", "2020-01-05", "2020-01-19"
