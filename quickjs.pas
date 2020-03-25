@@ -32,16 +32,11 @@ unit QuickJS; // sync with version - "2020-03-16".
 {$IfDef FPC}
   {$IfNDef windows}
     {$LinkLib 'libquickjs.a'}
+    //{$LinkLib 'libquickjs.lto.a'} { Faster Code - Link Time Optimization - Slow Compiling }
   {$EndIf}
 {$EndIf}
 
-(* Faster Code - Link Time Optimization - Slow Compiling *)
-//{'libquickjs.lto.a'}
 
-//{'libquickjs.bn.a'} {$Define BIGNUM} // BigNumbers support.
-
-(* Faster Code  - BigNumbers support + Link Time Optimization - Slow Compiling *)
-//{'libquickjs.bn.lto.a'}
 
 {$IfDef FPC}
   {$IfNDef CPU64}
@@ -128,8 +123,8 @@ const
   JS_EVAL_TYPE_INDIRECT    = (3 shl 0); { indirect call (internal use) }
   JS_EVAL_TYPE_MASK        = (3 shl 0);
 
-  JS_EVAL_FLAG_STRICT       = (1 shl 3); { force 'strict' mode }
-  JS_EVAL_FLAG_STRIP        = (1 shl 4); { force 'strip' mode }
+  JS_EVAL_FLAG_STRICT      = (1 shl 3); { force 'strict' mode }
+  JS_EVAL_FLAG_STRIP       = (1 shl 4); { force 'strip' mode }
   (*
     compile but do not run. The result is an object with a
      JS_TAG_FUNCTION_BYTECODE or JS_TAG_MODULE tag. It can be executed
@@ -148,33 +143,33 @@ const
   JS_READ_OBJ_ROM_DATA      = (1 shl 1); { avoid duplicating 'buf' data  }
 
   { C property definition }
-  JS_DEF_CFUNC = 0;
-  JS_DEF_CGETSET = 1;
-  JS_DEF_CGETSET_MAGIC = 2;
-  JS_DEF_PROP_STRING = 3;
-  JS_DEF_PROP_INT32 = 4;
-  JS_DEF_PROP_INT64 = 5;
-  JS_DEF_PROP_DOUBLE = 6;
-  JS_DEF_PROP_UNDEFINED = 7;
-  JS_DEF_OBJECT = 8;
-  JS_DEF_ALIAS = 9;
+  JS_DEF_CFUNC            = 0;
+  JS_DEF_CGETSET          = 1;
+  JS_DEF_CGETSET_MAGIC    = 2;
+  JS_DEF_PROP_STRING      = 3;
+  JS_DEF_PROP_INT32       = 4;
+  JS_DEF_PROP_INT64       = 5;
+  JS_DEF_PROP_DOUBLE      = 6;
+  JS_DEF_PROP_UNDEFINED   = 7;
+  JS_DEF_OBJECT           = 8;
+  JS_DEF_ALIAS            = 9;
 
 
   { C function definition }
   { JSCFunctionEnum }
-  JS_CFUNC_generic = 0;
-  JS_CFUNC_generic_magic = 1;
-  JS_CFUNC_constructor = 2;
-  JS_CFUNC_constructor_magic = 3;
-  JS_CFUNC_constructor_or_func = 4;
+  JS_CFUNC_generic                   = 0;
+  JS_CFUNC_generic_magic             = 1;
+  JS_CFUNC_constructor               = 2;
+  JS_CFUNC_constructor_magic         = 3;
+  JS_CFUNC_constructor_or_func       = 4;
   JS_CFUNC_constructor_or_func_magic = 5;
-  JS_CFUNC_f_f = 6;
-  JS_CFUNC_f_f_f = 7;
-  JS_CFUNC_getter = 8;
-  JS_CFUNC_setter = 9;
-  JS_CFUNC_getter_magic = 10;
-  JS_CFUNC_setter_magic = 11;
-  JS_CFUNC_iterator_next = 12;
+  JS_CFUNC_f_f                       = 6;
+  JS_CFUNC_f_f_f                     = 7;
+  JS_CFUNC_getter                    = 8;
+  JS_CFUNC_setter                    = 9;
+  JS_CFUNC_getter_magic              = 10;
+  JS_CFUNC_setter_magic              = 11;
+  JS_CFUNC_iterator_next             = 12;
 
   JS_GPN_STRING_MASK  = (1 shl 0);
   JS_GPN_SYMBOL_MASK  = (1 shl 1);
@@ -183,7 +178,7 @@ const
   { only include the enumerable properties }
   JS_GPN_ENUM_ONLY = (1 shl 4);
   { set theJSPropertyEnum.is_enumerable field }
-  JS_GPN_SET_ENUM = (1 shl 5);
+  JS_GPN_SET_ENUM  = (1 shl 5);
 
   { C Call Flags }
 
@@ -195,30 +190,29 @@ type
   {$IFNDEF FPC}
     // Delphi Compatible.
     // Anything under XE4.
-    {$IF (CompilerVersion <= 25)}
-    type
-      PUint32 = ^Uint32; // PUint32 not defined in XE4 - Fix by @edwinyzh
-    {$IFEND}
-    pUInt8  	      = PByte;
-    pInt8   	      = PShortInt;
-    pInt16  	      = PSmallint;
-    PInt32  	      = PLongint;
+  {$IF (CompilerVersion <= 25)}
+    PUint32 = ^Uint32; // PUint32 not defined in XE4 - Fix by @edwinyzh
+  {$IFEND}
+    pUInt8  = PByte;
+    pInt8   = PShortInt;
+    pInt16  = PSmallint;
+    PInt32  = PLongint;
   {$ENDIF}
   {$ifdef cpu64}
-    size_t  = qword;
+    size_t  = QWord;
     psize_t = ^size_t;
   {$else}
-    size_t  = cardinal;
+    size_t  = Cardinal;
     psize_t = ^size_t;
   {$endif}
 
-  JS_BOOL = Boolean;
+  JS_BOOL   = Boolean;
   JSRuntime = Pointer;
 
   PPJSContext = ^_PJSContext; // Pointer to Pointer.
   _PJSContext = ^_JSContext;
-  _JSContext = record end; // Empty record to mimic the JSContext.
-  JSContext = Pointer;
+  _JSContext  = record end; // Empty record to mimic the JSContext.
+  JSContext   = Pointer;
 
   JSObject  = Pointer;
   JSClass   = Pointer;
@@ -243,16 +237,15 @@ type
   end;
 
 {$If Defined(JS_NAN_BOXING)}
-  JSValue        = UInt64;
-  PJSValue       = ^JSValue;
-
-  JSValueConst   = JSValue;
-  PJSValueConst  = ^JSValueConst;
-  JSValueConstArr = array[0..(MaxInt div SizeOf(JSValueConst))-1] of JSValueConst;
+  JSValue          = UInt64;
+  PJSValue         = ^JSValue;
+  JSValueConst     = JSValue;
+  PJSValueConst    = ^JSValueConst;
+  JSValueConstArr  = array[0..(MaxInt div SizeOf(JSValueConst))-1] of JSValueConst;
   PJSValueConstArr = ^JSValueConstArr;
 const
   JS_FLOAT64_TAG_ADDEND =  $7ff80000 - JS_TAG_FIRST + 1; // quiet NaN encoding
-  JS_NAN = ($7ff8000000000000 - (JS_FLOAT64_TAG_ADDEND shl 32));
+  JS_NAN                = ($7ff8000000000000 - (JS_FLOAT64_TAG_ADDEND shl 32));
 {$Else}
 type
   JSValueUnion = record
@@ -266,11 +259,10 @@ type
       u : JSValueUnion;
       tag : Int64;
   end;
-  PJSValue = ^JSValue;
-
-  JSValueConst = JSValue;
-  PJSValueConst = ^JSValueConst;
-  JSValueConstArr = array[0..(MaxInt div SizeOf(JSValueConst))-1] of JSValueConst;
+  PJSValue         = ^JSValue;
+  JSValueConst     = JSValue;
+  PJSValueConst    = ^JSValueConst;
+  JSValueConstArr  = array[0..(MaxInt div SizeOf(JSValueConst))-1] of JSValueConst;
   PJSValueConstArr = ^JSValueConstArr;
 {$ENDIF}
 type
@@ -284,7 +276,7 @@ type
 
   //c_malloc = function (s : JSMallocState; size : UInt64) : Pointer;
   //Pc_malloc = ^c_malloc;
-
+  // TODO: Check If funcs need to be Pointers or not. ^^^^^
   JSMallocFunctions = record
      js_malloc  : function (s : PJSMallocState; size : size_t) : Pointer; cdecl;
      js_free    : procedure (s : PJSMallocState; Ptr : Pointer); cdecl;
