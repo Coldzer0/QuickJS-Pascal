@@ -447,11 +447,11 @@ type
                                magic:Integer):JSValue; cdecl;
   JSCFunctionType = record
     case Integer of
-      0 : ( &generic : PJSCFunction );
+      0 : ( &generic : JSCFunction );
       1 : ( generic_magic :  JSCFunctionMagic);
-      2 : ( &constructor : PJSCFunction );
+      2 : ( &constructor : JSCFunction );
       3 : ( constructor_magic : constructor_magic_func);
-      4 : ( constructor_or_func : PJSCFunction );
+      4 : ( constructor_or_func : JSCFunction );
       5 : ( f_f : f_f_func);
       6 : ( f_f_f : f_f_f_func);
       7 : ( getter : Getter_func);
@@ -843,12 +843,12 @@ function JS_NewCFunctionMagic(ctx : JSContext; func : PJSCFunctionMagic; name : 
 
 { C property definition }
 
-function JS_CFUNC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; func1 : JSCFunctionType) : JSCFunctionListEntry;
+function JS_CFUNC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; func : JSCFunction) : JSCFunctionListEntry;
 function JS_CFUNC_MAGIC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; func1 : JSCFunctionType; magic : Int16) : JSCFunctionListEntry;
 function JS_CFUNC_SPECIAL_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; cproto : JSCFunctionEnum ; func1 : JSCFunctionType) : JSCFunctionListEntry;
 function JS_ITERATOR_NEXT_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; func1 : JSCFunctionType; magic : Int16) : JSCFunctionListEntry;
-function JS_CGETSET_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; fgetter, fsetter : JSCFunctionType) : JSCFunctionListEntry;
-function JS_CGETSET_MAGIC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; fgetter, fsetter : JSCFunctionType; magic : Int16) : JSCFunctionListEntry;
+function JS_CGETSET_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; fgetter : Getter_func; fsetter : Setter_func) : JSCFunctionListEntry;
+function JS_CGETSET_MAGIC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; fgetter_magic : getter_magic_func; fsetter_magic : setter_magic_func; magic : Int16) : JSCFunctionListEntry;
 function JS_PROP_STRING_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; val : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; prop_flags : UInt8) : JSCFunctionListEntry;
 function JS_PROP_INT32_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; val : Int32; prop_flags : UInt8) : JSCFunctionListEntry;
 function JS_PROP_INT64_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; val : Int64; prop_flags : UInt8) : JSCFunctionListEntry;
@@ -1296,7 +1296,7 @@ end;
 
 { C property definition }
 
-function JS_CFUNC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; func1 : JSCFunctionType) : JSCFunctionListEntry;
+function JS_CFUNC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; func : JSCFunction) : JSCFunctionListEntry;
 begin
   Result.name := name;
   Result.prop_flags := JS_PROP_WRITABLE or JS_PROP_CONFIGURABLE;
@@ -1304,7 +1304,7 @@ begin
   Result.magic := 0;
   Result.u.func.length := length;
   Result.u.func.cproto := JS_CFUNC_generic;
-  Result.u.func.cfunc.&generic := func1.&generic;
+  Result.u.func.cfunc.&generic := func;
 end;
 
 function JS_CFUNC_MAGIC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; func1 : JSCFunctionType; magic : Int16) : JSCFunctionListEntry;
@@ -1343,26 +1343,28 @@ begin
   Result.u.func.cfunc.iterator_next := func1.iterator_next;
 end;
 
-function JS_CGETSET_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; fgetter, fsetter : JSCFunctionType) : JSCFunctionListEntry;
+function JS_CGETSET_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf};
+           fgetter : Getter_func; fsetter : Setter_func ) : JSCFunctionListEntry;
 begin
   Result.name := name;
   Result.prop_flags := JS_PROP_CONFIGURABLE;
   Result.def_type := JS_DEF_CGETSET;
   Result.magic := 0;
-// TODO: Check if this type assigment is working or not - Need some test cases.
-  Result.u.getset.get  := fgetter;
-  Result.u.getset._set := fsetter;
+  Result.u.getset.get.getter  := fgetter;
+  Result.u.getset._set.setter := fsetter;
 end;
 
-function JS_CGETSET_MAGIC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; fgetter, fsetter : JSCFunctionType; magic : Int16) : JSCFunctionListEntry;
+function JS_CGETSET_MAGIC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf};
+           fgetter_magic : getter_magic_func;
+           fsetter_magic : setter_magic_func; magic : Int16) : JSCFunctionListEntry;
 begin
   Result.name := name;
   Result.prop_flags := JS_PROP_CONFIGURABLE;
   Result.def_type := JS_DEF_CGETSET_MAGIC;
   Result.magic := magic;
 // TODO: Check if this type assigment is working or not - Need some test cases.
-  Result.u.getset.get.getter_magic := fgetter.getter_magic;
-  Result.u.getset._set.setter_magic := fsetter.setter_magic;
+  Result.u.getset.get.getter_magic := fgetter_magic;
+  Result.u.getset._set.setter_magic := fsetter_magic;
 end;
 
 function JS_PROP_STRING_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; val : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; prop_flags : UInt8) : JSCFunctionListEntry;
@@ -1441,12 +1443,12 @@ begin
 end;
 
 { bignum stuff :D }
-{$IfDef BIGNUM}
-function c_udivti3(num,den:uint64):uint64; cdecl; {$ifdef darwin}[public, alias: '___udivti3'];{$else}[public, alias: '__udivdi3'];{$endif}
+
+function c_udivti3(num,den:uint64):uint64; cdecl; public alias: {$ifdef darwin}'___udivti3'{$else} '__udivdi3']{$endif};
 begin
  result:=num div den;
 end;
-{$ENDIF}
+
 
 initialization
   // fix the Invalid floating point operation .
