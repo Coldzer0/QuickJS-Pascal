@@ -1,7 +1,7 @@
 {
   FreePascal / Delphi bindings for QuickJS Engine.
 
-  Copyright(c) 2020 Coldzer0 <Coldzer0 [at] protonmail.ch>
+  Copyright(c) 2019-2020 Coldzer0 <Coldzer0 [at] protonmail.ch>
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,7 @@
   IN THE SOFTWARE.
 }
 
-unit QuickJS; // sync with version - "2020-03-16".
+unit QuickJS; // sync with version - "2020-04-12".
 
 {$IfDef FPC}
   {$MODE Delphi}
@@ -35,14 +35,12 @@ unit QuickJS; // sync with version - "2020-03-16".
   {$EndIf}
 {$EndIf}
 
-
-
 {$IfDef FPC}
   {$IfNDef CPU64}
     {$Define JS_NAN_BOXING}
   {$ENDIF}
 {$ELSE}
-   {$IfNDef WIN64}
+   {$IfNDef CPUX64}
     {$Define JS_NAN_BOXING}
   {$ENDIF}
 {$ENDIF}
@@ -53,10 +51,10 @@ uses
   math;
 
 {===============================================================================}
-//                             QuickJS Constants
+{                              QuickJS Constants                                }
 {===============================================================================}
 const
-  QJS_VERSION = '2020-03-16';
+  QJS_VERSION = '2020-04-12';
 const
   { all tags with a reference count are negative }
   JS_TAG_FIRST                = -11; { first negative tag }
@@ -436,18 +434,19 @@ type
 
   { C function definition }
 
-  constructor_magic_func = function (ctx: JSContext; new_target:JSValueConst; argc:Integer; argv:PJSValueConst; magic:Integer):JSValue; cdecl;
+  constructor_magic_func = function (ctx: JSContext; new_target:JSValueConst; argc:Integer; argv:PJSValueConst;
+                              magic:Integer):JSValue; cdecl;
   f_f_func    = function (_para1:double):double cdecl;
   f_f_f_func  = function (_para1:double; _para2:double):double; cdecl;
   Getter_func = function (ctx: JSContext; this_val:JSValueConst):JSValue; cdecl;
   Setter_func = function (ctx: JSContext; this_val:JSValueConst; val:JSValueConst):JSValue;cdecl;
-  getter_magic_func = function (ctx: JSContext; this_val:JSValueConst; magic:Integer):JSValue; cdecl;
-  setter_magic_func = function (ctx: JSContext; this_val:JSValueConst; val:JSValueConst; magic:Integer):JSValue; cdecl;
+  getter_magic_func  = function (ctx: JSContext; this_val:JSValueConst; magic:Integer):JSValue; cdecl;
+  setter_magic_func  = function (ctx: JSContext; this_val:JSValueConst; val:JSValueConst; magic:Integer):JSValue; cdecl;
   iterator_next_func = function (ctx: JSContext; this_val:JSValueConst; argc:Integer; argv:PJSValueConst; pdone:PInteger;
                                magic:Integer):JSValue; cdecl;
   JSCFunctionType = record
     case Integer of
-      0 : ( &generic : JSCFunction );
+      0 : ( generic : JSCFunction );
       1 : ( generic_magic :  JSCFunctionMagic);
       2 : ( &constructor : JSCFunction );
       3 : ( constructor_magic : constructor_magic_func);
@@ -503,6 +502,7 @@ type
   procedure JS_SetRuntimeInfo(rt : JSRuntime; const info : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure JS_SetMemoryLimit(rt : JSRuntime; limit : size_t); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure JS_SetGCThreshold(rt : JSRuntime; gc_threshold : size_t); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  procedure JS_SetMaxStackSize(ctx: JSContext; stack_size:size_t); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
   function  JS_NewRuntime2(const mf : PJSMallocFunctions; opaque : Pointer) : JSRuntime; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure JS_FreeRuntime(rt : JSRuntime); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
@@ -517,10 +517,10 @@ type
   //{REMOVE}function JS_IsInGCSweep(rt:JSRuntime):JS_BOOL; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_NewContext(rt:JSRuntime):JSContext; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure JS_FreeContext(s: JSContext); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  function JS_DupContext(ctx : JSContext) : JSContext; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_GetContextOpaque(ctx: JSContext):pointer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure JS_SetContextOpaque(ctx: JSContext; opaque:pointer); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_GetRuntime(ctx: JSContext):JSRuntime; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
-  procedure JS_SetMaxStackSize(ctx: JSContext; stack_size:size_t); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure JS_SetClassProto(ctx: JSContext; class_id:JSClassID; obj:JSValue); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_GetClassProto(ctx: JSContext; class_id:JSClassID):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
@@ -844,9 +844,10 @@ function JS_NewCFunctionMagic(ctx : JSContext; func : PJSCFunctionMagic; name : 
 { C property definition }
 
 function JS_CFUNC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; func : JSCFunction) : JSCFunctionListEntry;
-function JS_CFUNC_MAGIC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; func1 : JSCFunctionType; magic : Int16) : JSCFunctionListEntry;
-function JS_CFUNC_SPECIAL_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; cproto : JSCFunctionEnum ; func1 : JSCFunctionType) : JSCFunctionListEntry;
-function JS_ITERATOR_NEXT_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; func1 : JSCFunctionType; magic : Int16) : JSCFunctionListEntry;
+function JS_CFUNC_MAGIC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; func : JSCFunctionMagic; magic : Int16) : JSCFunctionListEntry;
+function JS_CFUNC_SPECIAL_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; cproto : JSCFunctionEnum ; func : f_f_func) : JSCFunctionListEntry; overload;
+function JS_CFUNC_SPECIAL_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; cproto : JSCFunctionEnum ; func : f_f_f_func) : JSCFunctionListEntry; overload;
+function JS_ITERATOR_NEXT_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; iterator_next : iterator_next_func; magic : Int16) : JSCFunctionListEntry;
 function JS_CGETSET_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; fgetter : Getter_func; fsetter : Setter_func) : JSCFunctionListEntry;
 function JS_CGETSET_MAGIC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; fgetter_magic : getter_magic_func; fsetter_magic : setter_magic_func; magic : Int16) : JSCFunctionListEntry;
 function JS_PROP_STRING_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; val : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; prop_flags : UInt8) : JSCFunctionListEntry;
@@ -1296,7 +1297,8 @@ end;
 
 { C property definition }
 
-function JS_CFUNC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; func : JSCFunction) : JSCFunctionListEntry;
+function JS_CFUNC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer;
+           func : JSCFunction) : JSCFunctionListEntry;
 begin
   Result.name := name;
   Result.prop_flags := JS_PROP_WRITABLE or JS_PROP_CONFIGURABLE;
@@ -1304,10 +1306,11 @@ begin
   Result.magic := 0;
   Result.u.func.length := length;
   Result.u.func.cproto := JS_CFUNC_generic;
-  Result.u.func.cfunc.&generic := func;
+  Result.u.func.cfunc.generic := func;
 end;
 
-function JS_CFUNC_MAGIC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; func1 : JSCFunctionType; magic : Int16) : JSCFunctionListEntry;
+function JS_CFUNC_MAGIC_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer;
+           func : JSCFunctionMagic; magic : Int16) : JSCFunctionListEntry;
 begin
   Result.name := name;
   Result.prop_flags := JS_PROP_WRITABLE or JS_PROP_CONFIGURABLE;
@@ -1315,10 +1318,11 @@ begin
   Result.magic := magic;
   Result.u.func.length := length;
   Result.u.func.cproto := JS_CFUNC_generic_magic;
-  Result.u.func.cfunc.generic_magic := func1.generic_magic;
+  Result.u.func.cfunc.generic_magic := func;
 end;
 
-function JS_CFUNC_SPECIAL_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; cproto : JSCFunctionEnum ; func1 : JSCFunctionType) : JSCFunctionListEntry;
+function JS_CFUNC_SPECIAL_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer;
+           cproto : JSCFunctionEnum ; func : f_f_func) : JSCFunctionListEntry; overload;
 begin
   Result.name := name;
   Result.prop_flags := JS_PROP_WRITABLE or JS_PROP_CONFIGURABLE;
@@ -1326,13 +1330,23 @@ begin
   Result.magic := 0;
   Result.u.func.length := length;
   Result.u.func.cproto := cproto;
-  if cproto = JS_CFUNC_f_f then
-     Result.u.func.cfunc.f_f := func1.f_f;
-  if cproto = JS_CFUNC_f_f_f then
-     Result.u.func.cfunc.f_f_f := func1.f_f_f;
+  Result.u.func.cfunc.f_f := func;
 end;
 
-function JS_ITERATOR_NEXT_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer; func1 : JSCFunctionType; magic : Int16) : JSCFunctionListEntry;
+function JS_CFUNC_SPECIAL_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer;
+           cproto : JSCFunctionEnum ; func : f_f_f_func) : JSCFunctionListEntry; overload;
+begin
+  Result.name := name;
+  Result.prop_flags := JS_PROP_WRITABLE or JS_PROP_CONFIGURABLE;
+  Result.def_type := JS_DEF_CFUNC;
+  Result.magic := 0;
+  Result.u.func.length := length;
+  Result.u.func.cproto := cproto;
+  Result.u.func.cfunc.f_f_f := func;
+end;
+
+function JS_ITERATOR_NEXT_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; length : Integer;
+           iterator_next : iterator_next_func; magic : Int16) : JSCFunctionListEntry;
 begin
   Result.name := name;
   Result.prop_flags := JS_PROP_WRITABLE or JS_PROP_CONFIGURABLE;
@@ -1340,7 +1354,7 @@ begin
   Result.magic := magic;
   Result.u.func.length := length;
   Result.u.func.cproto := JS_CFUNC_iterator_next;
-  Result.u.func.cfunc.iterator_next := func1.iterator_next;
+  Result.u.func.cfunc.iterator_next := iterator_next;
 end;
 
 function JS_CGETSET_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf};
@@ -1362,12 +1376,12 @@ begin
   Result.prop_flags := JS_PROP_CONFIGURABLE;
   Result.def_type := JS_DEF_CGETSET_MAGIC;
   Result.magic := magic;
-// TODO: Check if this type assigment is working or not - Need some test cases.
   Result.u.getset.get.getter_magic := fgetter_magic;
   Result.u.getset._set.setter_magic := fsetter_magic;
 end;
 
-function JS_PROP_STRING_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; val : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; prop_flags : UInt8) : JSCFunctionListEntry;
+function JS_PROP_STRING_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf};
+           val : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; prop_flags : UInt8) : JSCFunctionListEntry;
 begin
   Result.name := name;
   Result.prop_flags := prop_flags;
@@ -1376,7 +1390,8 @@ begin
   Result.u.str := val;
 end;
 
-function JS_PROP_INT32_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; val : Int32; prop_flags : UInt8) : JSCFunctionListEntry;
+function JS_PROP_INT32_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf};
+           val : Int32; prop_flags : UInt8) : JSCFunctionListEntry;
 begin
   Result.name := name;
   Result.prop_flags := prop_flags;
@@ -1385,7 +1400,8 @@ begin
   Result.u.i32 := val;
 end;
 
-function JS_PROP_INT64_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; val : Int64; prop_flags : UInt8) : JSCFunctionListEntry;
+function JS_PROP_INT64_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf};
+           val : Int64; prop_flags : UInt8) : JSCFunctionListEntry;
 begin
   Result.name := name;
   Result.prop_flags := prop_flags;
@@ -1394,7 +1410,8 @@ begin
   Result.u.i64 := val;
 end;
 
-function JS_PROP_DOUBLE_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; val : Double; prop_flags : UInt8) : JSCFunctionListEntry;
+function JS_PROP_DOUBLE_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf};
+           val : Double; prop_flags : UInt8) : JSCFunctionListEntry;
 begin
   Result.name := name;
   Result.prop_flags := prop_flags;
@@ -1403,7 +1420,8 @@ begin
   Result.u.f64 := val;
 end;
 
-function JS_PROP_UNDEFINED_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; prop_flags : UInt8) : JSCFunctionListEntry;
+function JS_PROP_UNDEFINED_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf};
+           prop_flags : UInt8) : JSCFunctionListEntry;
 begin
   Result.name := name;
   Result.prop_flags := prop_flags;
@@ -1412,7 +1430,8 @@ begin
   Result.u.i32 := 0;
 end;
 
-function JS_OBJECT_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; tab : PJSCFunctionListEntry;  length : Integer; prop_flags : UInt8) : JSCFunctionListEntry;
+function JS_OBJECT_DEF(name : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; tab : PJSCFunctionListEntry;
+           length : Integer; prop_flags : UInt8) : JSCFunctionListEntry;
 begin
   Result.name := name;
   Result.prop_flags := prop_flags;
@@ -1432,7 +1451,8 @@ begin
   Result.u.alias.base := -1;
 end;
 
-function JS_ALIAS_BASE_DEF(name, from : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; base : Integer) : JSCFunctionListEntry;
+function JS_ALIAS_BASE_DEF(name, from : {$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf};
+           base : Integer) : JSCFunctionListEntry;
 begin
   Result.name := name;
   Result.prop_flags := JS_PROP_WRITABLE or JS_PROP_CONFIGURABLE;
@@ -1444,7 +1464,7 @@ end;
 
 { bignum stuff :D }
 
-function c_udivti3(num,den:uint64):uint64; cdecl; public alias: {$ifdef darwin}'___udivti3'{$else} '__udivdi3']{$endif};
+function c_udivti3(num,den:uint64):uint64; cdecl; public alias: {$ifdef darwin}'___udivti3'{$else} '__udivdi3'{$endif};
 begin
  result:=num div den;
 end;
