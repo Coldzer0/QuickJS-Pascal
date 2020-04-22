@@ -19,22 +19,41 @@ uses
   QuickJSDemo,RawExecution;
 
 
-function eval_buf(ctx : JSContext; Buf : PChar; buf_len : Integer; filename : PChar; eval_flags : Integer): Integer;
+function eval_buf(ctx: JSContext; Buf: PChar; buf_len: integer;
+  filename: PChar; is_main : boolean; eval_flags: integer = -1): JSValue;
 var
-  val : JSValue;
+  ret: JSValue;
 begin
-  val := JS_Eval(ctx, buf, buf_len, filename, eval_flags);
-  if JS_IsException(val) then
+  if eval_flags = -1 then
   begin
-    js_std_dump_error(ctx);
-    Result := -1;
+    if JS_DetectModule(Buf,buf_len) then
+      eval_flags := JS_EVAL_TYPE_MODULE
+    else
+      eval_flags := JS_EVAL_TYPE_GLOBAL;
+  end;
+
+  if (eval_flags and JS_EVAL_TYPE_MASK) = JS_EVAL_TYPE_MODULE then
+  begin
+    ret := JS_Eval(ctx, buf, buf_len, filename, eval_flags or JS_EVAL_FLAG_COMPILE_ONLY);
+    if not JS_IsException(ret) then
+    begin
+      js_module_set_import_meta(ctx, ret, True, is_main);
+      ret := JS_EvalFunction(ctx, ret);
+    end;
   end
   else
-    Result := 0;
-    JS_FreeValue(ctx, val);
+    ret := JS_Eval(ctx, buf, buf_len, filename, eval_flags);
+
+  if JS_IsException(ret) then
+  begin
+    js_std_dump_error(ctx);
+    Result := JS_NULL;
+  end
+  else
+    Result := ret;
 end;
 
-function eval_file(ctx : JSContext; filename : PChar; eval_flags : Integer): Integer;
+function eval_file(ctx : JSContext; filename : PChar; eval_flags : Integer = -1): JSValue;
 var
   buf_len : size_t;
   Buf : Pointer;
@@ -43,9 +62,9 @@ begin
   if not Assigned(buf) then
   begin
     Writeln('Error While Loading : ',filename);
-    exit(1);
+    exit(JS_EXCEPTION);
   end;
-  Result := eval_buf(ctx, buf, buf_len, filename, eval_flags);
+  Result := eval_buf(ctx, buf, buf_len, filename, true, eval_flags);
   js_free(ctx, buf);
 end;
 
@@ -94,7 +113,7 @@ begin
       // ES6 Module loader.
       JS_SetModuleLoaderFunc(rt, nil, @js_module_loader, nil);
 
-      js_std_add_helpers(ctx,argc,argv);
+      js_std_add_helpers(ctx,argc-1,@argv[1]);
       js_init_module_std(ctx, 'std');
       js_init_module_os(ctx, 'os');
 
@@ -111,7 +130,7 @@ begin
       m := JS_NewCModule(ctx, 'Cmu', @Emu_init);
       JS_AddModuleExport(ctx,m,'ApiHook');
 
-      eval_buf(ctx, std_hepler, strlen(std_hepler), '<global_helper>', JS_EVAL_TYPE_MODULE);
+      eval_buf(ctx, std_hepler, strlen(std_hepler), '<global_helper>', False, JS_EVAL_TYPE_MODULE);
 
 
       global := JS_GetGlobalObject(ctx);
@@ -124,7 +143,7 @@ begin
       if ParamCount >= 1 then
       begin
         filename := PChar(ParamStr(1));
-        eval_file(ctx,filename,JS_EVAL_TYPE_GLOBAL {or JS_EVAL_TYPE_MODULE});
+        eval_file(ctx,filename);
       end;
 
       js_std_loop(ctx);
@@ -140,6 +159,7 @@ end;
 
 
 begin
+  { TODO -oColdzer0 : RawTest Bytes need to be updated }
   //RawTest; // If you unComment this comment the next line.
   RunCode;
 end.

@@ -89,7 +89,7 @@ begin
   JS_NewClass(JS_GetRuntime(ctx),API_Class_id,@JClass);
 
   // Properties list.
-  tab[0] := JS_CFUNC_DEF('install', 1, JSCFunctionType(@install));
+  tab[0] := JS_CFUNC_DEF('install', 1, install);
   tab[1] := JS_PROP_INT32_DEF('version', 1337, JS_PROP_CONFIGURABLE);// add "or JS_PROP_WRITABLE" to make it writable.
 
   // New Object act as Prototype for the Class.
