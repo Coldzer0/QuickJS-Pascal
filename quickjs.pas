@@ -802,6 +802,7 @@ type
   function  js_init_module_os(ctx: JSContext; module_name:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}):JSModuleDef;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure js_std_add_helpers(ctx : JSContext; argc : Integer; argv : Pointer);cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure js_std_loop(ctx : JSContext); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  procedure js_std_init_handlers(rt:JSRuntime);cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure js_std_free_handlers(rt:JSRuntime);cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure js_std_dump_error(ctx:JSContext);cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function  js_load_file(ctx:JSContext; pbuf_len: psize_t; filename:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}): Pointer;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
@@ -810,6 +811,9 @@ type
   function  js_module_set_import_meta(ctx : JSContext; func_val : JSValueConst; use_realpath, is_main : JS_BOOL) : Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure js_std_promise_rejection_tracker(ctx : JSContext;
              promise, reason : JSValueConst; is_handled : JS_BOOL; opaque : Pointer); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+
+  // TODO: Check pctx if the type is right.
+  procedure js_std_set_worker_new_context_func(pctx : PPJSContext); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
 { internal implementations}
 

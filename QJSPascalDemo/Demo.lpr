@@ -107,6 +107,9 @@ begin
   rt := JS_NewRuntime;
   if Assigned(rt) then
   begin
+
+    js_std_init_handlers(rt);
+    
     ctx := JS_NewContext(rt);
     if Assigned(rt) then
     begin
