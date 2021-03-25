@@ -54,7 +54,7 @@ uses
 {                              QuickJS Constants                                }
 {===============================================================================}
 const
-  QJS_VERSION = '2020-04-12';
+  QJS_VERSION = '2020-11-08';
 const
   { all tags with a reference count are negative }
   JS_TAG_FIRST                = -11; { first negative tag }
@@ -136,8 +136,16 @@ const
   JS_WRITE_OBJ_BYTECODE     = (1 shl 0); { allow function/module }
   JS_WRITE_OBJ_BSWAP        = (1 shl 1); { byte swapped output }
 
+  JS_WRITE_OBJ_SAB          = (1 shl 2); { allow SharedArrayBuffer }
+  JS_WRITE_OBJ_REFERENCE    = (1 shl 3); { allow object references to
+                                           encode arbitrary object
+                                           graph }
+
   JS_READ_OBJ_BYTECODE      = (1 shl 0); { allow function/module  }
   JS_READ_OBJ_ROM_DATA      = (1 shl 1); { avoid duplicating 'buf' data  }
+
+  JS_READ_OBJ_SAB           = (1 shl 2); { allow SharedArrayBuffer  }
+  JS_READ_OBJ_REFERENCE     = (1 shl 3); { allow object references  }
 
   { C property definition }
   JS_DEF_CFUNC            = 0;
@@ -180,6 +188,10 @@ const
   { C Call Flags }
 
   JS_CALL_FLAG_CONSTRUCTOR = (1 shl 0);
+
+  JS_PARSE_JSON_EXT  = (1 shl 0); { allow extended JSON  }
+
+  JS_ATOM_NULL = 0; { atom support }
 {===============================================================================}
 {===============================================================================}
 
@@ -202,6 +214,9 @@ type
     size_t  = Cardinal;
     psize_t = ^size_t;
   {$endif}
+
+  ppUInt8  = ^pUInt8;
+  pppUInt8  = ^ppUInt8;
 
   JS_BOOL   = Boolean;
   JSRuntime = Pointer;
@@ -281,6 +296,14 @@ type
      js_malloc_usable_size : function (Ptr : Pointer) : size_t; cdecl;
   end;
   PJSMallocFunctions = ^JSMallocFunctions;
+
+  JSSharedArrayBufferFunctions = record
+    sab_alloc  : function (opaque : Pointer; size : size_t) : Pointer; cdecl;
+    sab_free   : procedure (opaque : Pointer; Ptr : Pointer); cdecl;
+    sab_dup    : procedure (opaque : Pointer; Ptr : Pointer); cdecl;
+    sab_opaque : Pointer;
+  end;
+  PJSSharedArrayBufferFunctions = ^JSSharedArrayBufferFunctions;
 
   PJSMemoryUsage = ^JSMemoryUsage;
   JSMemoryUsage = record
@@ -655,13 +678,14 @@ type
   function JS_PreventExtensions(ctx:JSContext; obj:JSValueConst):Integer;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_DeleteProperty(ctx:JSContext; obj:JSValueConst; prop:JSAtom; flags:Integer):Integer;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_SetPrototype(ctx:JSContext; obj:JSValueConst; proto_val:JSValueConst):Integer;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
-  function JS_GetPrototype(ctx:JSContext; val:JSValueConst):JSValueConst;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  function JS_GetPrototype(ctx:JSContext; val:JSValueConst):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
-  function JS_GetOwnPropertyNames(ctx: JSContext; ptab:PPJSPropertyEnum; plen: pUInt32; obj:JSValueConst; flags : Integer): Integer;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  function JS_GetOwnPropertyNames(ctx: JSContext; ptab:PPJSPropertyEnum; plen: pUInt32; obj:JSValueConst; flags:Integer): Integer;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_GetOwnProperty(ctx: JSContext; desc : PJSPropertyDescriptor; obj : JSValueConst; prop : JSAtom): Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
   { 'buf' must be zero terminated i.e. buf[buf_len] := #0.  }
   function JS_ParseJSON(ctx:JSContext; buf:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; buf_len:size_t; filename:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  function JS_ParseJSON2(ctx:JSContext; buf:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; buf_len:size_t; filename:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf};flags:Integer):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_JSONStringify(ctx:JSContext; obj, replacer, space0 : JSValueConst):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_Call(ctx:JSContext; func_obj:JSValueConst; this_obj:JSValueConst; argc:Integer; argv:PJSValueConstArr):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_Invoke(ctx:JSContext; this_val:JSValueConst; atom:JSAtom; argc:Integer; argv:PJSValueConst):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
@@ -670,7 +694,9 @@ type
   function JS_DetectModule(const input:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; input_len : size_t):JS_BOOL;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   { 'input' must be zero terminated i.e. buf[buf_len] := #0.  }
   function JS_Eval(ctx:JSContext; input:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; input_len:size_t; filename:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; eval_flags:Integer):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
-  function JS_EvalFunction(ctx:JSContext; fun_obj : JSValue):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+
+  { same as JS_Eval() but with an explicit 'this_obj' parameter }
+  function JS_EvalThis(ctx:JSContext; val:JSValueConst;const input:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; input_len : size_t; filename:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; eval_flags:Integer):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_GetGlobalObject(ctx:JSContext):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_IsInstanceOf(ctx:JSContext; val:JSValueConst; obj:JSValueConst):Integer;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_DefineProperty(ctx:JSContext; this_obj:JSValueConst; prop:JSAtom; val:JSValueConst; getter:JSValueConst;
@@ -697,6 +723,9 @@ type
 
   function JS_NewPromiseCapability(ctx:JSContext; resolving_funcs:PJSValue):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
+  procedure JS_SetSharedArrayBufferFunctions(rt: JSRuntime;
+            const sf : PJSSharedArrayBufferFunctions); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+
   procedure JS_SetHostPromiseRejectionTracker(rt: JSRuntime;
              cb : PJSHostPromiseRejectionTracker; opaque : Pointer); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
@@ -704,6 +733,8 @@ type
 
   { if can_block is TRUE, Atomics.wait() can be used  }
   procedure JS_SetCanBlock(rt:JSRuntime; can_block:JS_BOOL);cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  { set the [IsHTMLDDA] internal slot }
+  procedure JS_SetIsHTMLDDA(ctx:JSContext; obj : JSValueConst);cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
   { module_normalize = NULL is allowed and invokes the default module
      filename normalizer  }
@@ -722,12 +753,21 @@ type
   { allow function/module  }
 
   function JS_WriteObject(ctx: JSContext; psize:psize_t; obj:JSValueConst; flags:Integer):pUInt8; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  function JS_WriteObject2(ctx: JSContext; psize:psize_t; obj:JSValueConst; flags:Integer; psab_tab:pppUInt8; psab_tab_len:psize_t):pUInt8; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function JS_ReadObject(ctx: JSContext; buf:pUInt8; buf_len:size_t; flags:Integer):JSValue; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  { instantiate and evaluate a bytecode function. Only used when
+   reading a script or module with JS_ReadObject() }
+  function JS_EvalFunction(ctx:JSContext; fun_obj : JSValue):JSValue;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   {
     load the dependencies of the module 'obj'. Useful when JS_ReadObject()
      returns a module.
   }
   function JS_ResolveModule(ctx: JSContext; obj : JSValueConst):Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+
+  { only exported for os.Worker() }
+  function JS_GetScriptOrModuleName(ctx: JSContext; n_stack_levels: Integer) : JSAtom; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  { only exported for os.Worker() }
+  function JS_RunModule(ctx:JSContext; basename:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}; filename:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}):JSModuleDef;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
   { C function definition }
 
@@ -762,6 +802,7 @@ type
   function  js_init_module_os(ctx: JSContext; module_name:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}):JSModuleDef;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure js_std_add_helpers(ctx : JSContext; argc : Integer; argv : Pointer);cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure js_std_loop(ctx : JSContext); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+  procedure js_std_init_handlers(rt:JSRuntime);cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure js_std_free_handlers(rt:JSRuntime);cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure js_std_dump_error(ctx:JSContext);cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   function  js_load_file(ctx:JSContext; pbuf_len: psize_t; filename:{$IFDEF FPC}PChar{$Else}PAnsiChar{$EndIf}): Pointer;cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
@@ -770,6 +811,9 @@ type
   function  js_module_set_import_meta(ctx : JSContext; func_val : JSValueConst; use_realpath, is_main : JS_BOOL) : Integer; cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
   procedure js_std_promise_rejection_tracker(ctx : JSContext;
              promise, reason : JSValueConst; is_handled : JS_BOOL; opaque : Pointer); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
+
+  // TODO: Check pctx if the type is right.
+  procedure js_std_set_worker_new_context_func(pctx : PPJSContext); cdecl; external {$IFDEF mswindows}QJSDLL{$endif};
 
 { internal implementations}
 
